@@ -8,7 +8,30 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    body { margin: 0; padding: 0; overflow: hidden; background: #E4E1D8; font-family: 'DM Serif Display', serif; }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; }
+    body { overflow: hidden; background: #E4E1D8; font-family: 'DM Serif Display', serif; }
+    #root { width: 100%; height: 100%; }
+    * { -webkit-tap-highlight-color: transparent; outline: none !important; user-select: none; -webkit-user-select: none; }
+
+    /* Desktop: show as a mobile device, centered on a dark canvas */
+    @media (min-width: 600px) {
+      body {
+        background: #111;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #root {
+        width: 390px;
+        height: 844px;
+        min-width: 390px;
+        min-height: 844px;
+        border-radius: 44px;
+        overflow: hidden;
+        transform-origin: center center;
+        box-shadow: 0 40px 120px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08);
+      }
+    }
     .font-sans { font-family: 'DM Sans', sans-serif !important; }
     
     .paper-texture {
@@ -123,6 +146,66 @@
 </head>
 <body>
   <div id="root"></div>
+  <script>
+    (function () {
+      const MOBILE_W = 390, MOBILE_H = 844;
+
+      // Always set transform on desktop so position:fixed children anchor
+      // to #root instead of the full viewport
+      function applyScale() {
+        if (window.innerWidth < 600) return;
+        const root = document.getElementById('root');
+        const scale = Math.min(window.innerWidth / MOBILE_W, window.innerHeight / MOBILE_H, 1);
+        root.style.transform = `scale(${scale})`;
+      }
+      applyScale();
+      window.addEventListener('resize', applyScale);
+
+      // Blur any element that gains focus from a click so the browser
+      // never scroll-jumps the overflow:hidden landscape container
+      document.addEventListener('click', function() {
+        if (document.activeElement && document.activeElement !== document.body) {
+          document.activeElement.blur();
+        }
+      }, true);
+
+      // DEAD CODE BELOW — kept as safety net but vw/vh are now baked as px
+      if (window.innerWidth < 600) return;
+      let _patching = false;
+      function patchEl(el) {
+        if (_patching || !el.style || el.style.length === 0) return;
+        const props = Array.from(el.style);
+        const updates = {};
+        props.forEach(prop => {
+          const val = el.style.getPropertyValue(prop);
+          if (!val.includes('vw') && !val.includes('vh')) return;
+          const next = val
+            .replace(/(\d*\.?\d+)vw/g, (_, n) => `${(+n * MOBILE_W / 100).toFixed(3)}px`)
+            .replace(/(\d*\.?\d+)vh/g, (_, n) => `${(+n * MOBILE_H / 100).toFixed(3)}px`);
+          if (next !== val) updates[prop] = next;
+        });
+        if (Object.keys(updates).length) {
+          _patching = true;
+          Object.entries(updates).forEach(([p, v]) => el.style.setProperty(p, v));
+          _patching = false;
+        }
+      }
+      function patchTree(root) {
+        patchEl(root);
+        root.querySelectorAll && root.querySelectorAll('[style]').forEach(patchEl);
+      }
+      const obs = new MutationObserver(mutations => {
+        mutations.forEach(m => {
+          if (m.type === 'attributes') { patchEl(m.target); return; }
+          m.addedNodes.forEach(n => { if (n.nodeType === 1) patchTree(n); });
+        });
+      });
+      obs.observe(document.documentElement, {
+        subtree: true, childList: true,
+        attributes: true, attributeFilter: ['style']
+      });
+    })();
+  </script>
 
   <script>
     let audioCtx = null;
@@ -294,12 +377,12 @@
     };
 
     const GroundPlane = () => (
-      <div className="absolute bottom-0 w-full h-[21vh] z-[1]" />
+      <div className="absolute bottom-0 w-full h-[177.24px] z-[1]" />
     );
 
     const WoodBoardwalk = () => (
       <>
-        <div className="absolute bottom-[5vh] w-full h-[20vh] z-[5] pointer-events-none drop-shadow-2xl">
+        <div className="absolute bottom-[42.20px] w-full h-[168.80px] z-[5] pointer-events-none drop-shadow-2xl">
           <svg viewBox="0 0 2600 100" preserveAspectRatio="none" className="w-full h-full">
              {/* Soft shadow below boardwalk */}
              <rect x="0" y="28" width="2600" height="4" fill="black" opacity="0.15" rx="2" />
@@ -319,7 +402,7 @@
     );
 
     const TallGrass = () => (
-      <div className="absolute bottom-[22vh] w-full h-[15vh] z-[4] pointer-events-none">
+      <div className="absolute bottom-[185.68px] w-full h-[126.60px] z-[4] pointer-events-none">
         <svg viewBox="0 0 2600 200" preserveAspectRatio="none" className="w-full h-full">
           <style>{`
             @keyframes grassSway {
@@ -351,7 +434,7 @@
     );
 
     const StoneBase = () => (
-      <div className="absolute bottom-0 w-full h-[21vh] z-[4] pointer-events-none drop-shadow-2xl">
+      <div className="absolute bottom-0 w-full h-[177.24px] z-[4] pointer-events-none drop-shadow-2xl">
         <svg viewBox="0 0 2600 100" preserveAspectRatio="none" className="w-full h-full">
            <rect width="2600" height="100" fill="#4B4B4B" />
            {/* Evenly spaced vertical lines that tile seamlessly between chunks */}
@@ -393,7 +476,7 @@
       return (
         <div
           className="absolute z-[3] origin-bottom pointer-events-none"
-          style={{ bottom: '22vh', left: `${left}%`, width: '140vw', height: '140vw' }}
+          style={{ bottom: '185.68px', left: `${left}%`, width: '546.00px', height: '546.00px' }}
         >
           <img
             src={forward ? './BearForward.png' : './BearRight.png'}
@@ -417,7 +500,7 @@
       return (
         <div
           className="absolute z-[3] origin-bottom pointer-events-none"
-          style={{ bottom: '9vh', left: `${left}%`, width: '106vw', height: '106vw' }}
+          style={{ bottom: '75.96px', left: `${left}%`, width: '413.40px', height: '413.40px' }}
         >
           <img
             src={isBowing ? './deer_new_1.png' : './deer_new_2.png'}
@@ -439,13 +522,13 @@
       return (
         <div
           className="absolute z-[3] origin-bottom"
-          style={{ bottom: '21vh', left: `${left}%`, width: '70vw' }}
+          style={{ bottom: '177.24px', left: `${left}%`, width: '273.00px' }}
         >
           {/* Tanuki on top of rock */}
           <div
             onClick={handleTap}
             className="relative cursor-pointer"
-            style={{ width: '60vw', height: '60vw', margin: '0 auto', marginBottom: '1vh', position: 'relative', zIndex: 1 }}
+            style={{ width: '234.00px', height: '234.00px', margin: '0 auto', marginBottom: '8.44px', position: 'relative', zIndex: 1 }}
           >
             <img
               src={isBending ? './TanukiBend.png' : './TanukiStand.png'}
@@ -454,11 +537,11 @@
             />
           </div>
           {/* Shadow between tanuki and rock */}
-          <svg viewBox="0 0 100 10" className="pointer-events-none" style={{ width: '50%', margin: '-2.5vh auto 0', position: 'relative', zIndex: 1 }}>
+          <svg viewBox="0 0 100 10" className="pointer-events-none" style={{ width: '50%', margin: '-21.10px auto 0', position: 'relative', zIndex: 1 }}>
             <ellipse cx="50" cy="5" rx="40" ry="4" fill="black" opacity="0.12" />
           </svg>
           {/* Rock underneath - trapezoidal */}
-          <svg viewBox="0 0 140 60" className="w-full" style={{ marginTop: '-4vh', position: 'relative', zIndex: 0 }}>
+          <svg viewBox="0 0 140 60" className="w-full" style={{ marginTop: '-33.76px', position: 'relative', zIndex: 0 }}>
             {/* Main rock body - trapezoid with flat top */}
             <path d="M30,8 L110,8 L130,55 Q70,62 10,55 Z" fill="#6E685E" />
             {/* Lighter face */}
@@ -522,14 +605,14 @@
       return (
         <div
           className="absolute z-[45] origin-bottom drop-shadow-2xl pointer-events-none"
-          style={{ left: '50%', transform: 'translateX(-50%)', width: '53vw', height: '36vw', bottom: '4vh' }}
+          style={{ left: '50%', transform: 'translateX(-50%)', width: '206.70px', height: '140.40px', bottom: '33.76px' }}
         >
           <div onClick={handleClick} className="absolute cursor-pointer" style={{ pointerEvents: 'auto', left: '30%', top: '0%', width: '40%', height: '70%', zIndex: 10 }} />
           <img
             ref={imgRef}
             src={DOG_WALK_FRAMES[0]}
             className="object-contain pointer-events-none"
-            style={{ position: 'relative', top: '-17vw', width: '53vw', height: '53vw' }}
+            style={{ position: 'relative', top: '-66.30px', width: '206.70px', height: '206.70px' }}
             draggable="false"
           />
           <svg viewBox="0 0 160 20" className="absolute bottom-[32%] left-[-15%] w-[130%] h-[10%] -z-10 pointer-events-none">
@@ -544,8 +627,8 @@
 
       return (
         <div
-          className="absolute bottom-[20vh] z-[3] origin-bottom transition-all drop-shadow-2xl pointer-events-none"
-          style={{ left: `${left}%`, width: '140vw', height: '140vw' }}
+          className="absolute bottom-[168.80px] z-[3] origin-bottom transition-all drop-shadow-2xl pointer-events-none"
+          style={{ left: `${left}%`, width: '546.00px', height: '546.00px' }}
         >
           <img
             src={isOn ? './TorriGateON.png' : './TorriGate.png'}
@@ -574,8 +657,8 @@
       };
       return (
         <div
-          className="absolute bottom-[22vh] z-[2] origin-bottom drop-shadow-2xl pointer-events-none"
-          style={{ left: `${left}%`, width: '217vw', height: '242vw' }}
+          className="absolute bottom-[185.68px] z-[2] origin-bottom drop-shadow-2xl pointer-events-none"
+          style={{ left: `${left}%`, width: '846.30px', height: '943.80px' }}
         >
           <img
             src="./Shrine.png"
@@ -627,9 +710,9 @@
       };
       return (
         <div
-          className="absolute bottom-[12vh] z-[2] origin-bottom drop-shadow-2xl pointer-events-none"
+          className="absolute bottom-[101.28px] z-[2] origin-bottom drop-shadow-2xl pointer-events-none"
           style={{
-            width: '200vw', height: '280vw', left: `${left}%`,
+            width: '780.00px', height: '1092.00px', left: `${left}%`,
             transform: `scaleX(${flip ? -1 : 1}) scale(${scale})`,
             overflow: 'visible',
           }}
@@ -662,7 +745,7 @@
     };
 
     const SnowClumps = () => (
-      <div className="absolute bottom-[24vh] w-full h-[15vh] z-[4] pointer-events-none" style={{ WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)', maskImage: 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)' }}>
+      <div className="absolute bottom-[202.56px] w-full h-[126.60px] z-[4] pointer-events-none" style={{ WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)', maskImage: 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)' }}>
         <svg viewBox="0 0 2600 200" preserveAspectRatio="none" className="w-full h-full">
           {Array.from({ length: 60 }).map((_, i) => {
             const x = i * 45 + rnd(-15, 15);
@@ -692,8 +775,8 @@
         }
       };
       return (
-        <div className="absolute bottom-[20vh] z-[2] drop-shadow-2xl origin-bottom pointer-events-none"
-             style={{ left: `${left}%`, transform: `scaleX(${flip ? -1 : 1}) scale(${scale})`, width: '217vw', height: '266vw' }}>
+        <div className="absolute bottom-[168.80px] z-[2] drop-shadow-2xl origin-bottom pointer-events-none"
+             style={{ left: `${left}%`, transform: `scaleX(${flip ? -1 : 1}) scale(${scale})`, width: '846.30px', height: '1037.40px' }}>
           <div ref={shakeRef} className="w-full h-full origin-bottom">
             <img src="SnowTree.png" alt="Snow Tree" className="w-full h-full object-contain" draggable="false" />
             <div onClick={handleClick} className="absolute cursor-pointer" style={{ pointerEvents: 'auto', left: '25%', top: '15%', width: '50%', height: '75%' }} />
@@ -706,8 +789,8 @@
       const [showBaby, setShowBaby] = useState(false);
       return (
         <div
-          className="absolute bottom-[20vh] z-[3] drop-shadow-2xl origin-bottom pointer-events-none"
-          style={{ left: `${left}%`, width: '217vw', height: '266vw' }}
+          className="absolute bottom-[168.80px] z-[3] drop-shadow-2xl origin-bottom pointer-events-none"
+          style={{ left: `${left}%`, width: '846.30px', height: '1037.40px' }}
         >
           <img
             src={showBaby ? './SnowTreeBaby.png' : './SnowTreeMonkey.png'}
@@ -726,8 +809,8 @@
       return (
         <div
           onClick={(e) => { e.stopPropagation(); window.playSuikinkutsu(); setStanding(prev => !prev); }}
-          className="absolute bottom-[22vh] z-[3] cursor-pointer drop-shadow-xl origin-bottom"
-          style={{ left: `${left}%`, width: '85vw', height: '85vw' }}
+          className="absolute bottom-[185.68px] z-[3] cursor-pointer drop-shadow-xl origin-bottom"
+          style={{ left: `${left}%`, width: '331.50px', height: '331.50px' }}
         >
           <img
             src={standing ? './CraneWings.png' : './CraneStand.png'}
@@ -743,8 +826,8 @@
       return (
         <div
           onClick={(e) => { e.stopPropagation(); window.playSuikinkutsu(); setToppled(prev => !prev); }}
-          className="absolute bottom-[20vh] z-[3] cursor-pointer drop-shadow-xl origin-bottom"
-          style={{ left: `${left}%`, width: '68vw', height: '111vw' }}
+          className="absolute bottom-[168.80px] z-[3] cursor-pointer drop-shadow-xl origin-bottom"
+          style={{ left: `${left}%`, width: '265.20px', height: '432.90px' }}
         >
           <svg viewBox="0 0 100 180" className="w-full h-full">
             {toppled ? (
@@ -793,8 +876,8 @@
       return (
         <div
           onClick={handleTap}
-          className="absolute bottom-[12vh] z-[3] cursor-pointer origin-bottom"
-          style={{ left: `${left}%`, width: '30vw', height: '36vh' }}
+          className="absolute bottom-[101.28px] z-[3] cursor-pointer origin-bottom"
+          style={{ left: `${left}%`, width: '117.00px', height: '303.84px' }}
         >
           <svg viewBox="0 0 80 120" className="w-full h-full" overflow="visible">
             {/* Shadow */}
@@ -842,8 +925,8 @@
       return (
         <div
           onClick={(e) => { e.stopPropagation(); window.playSuikinkutsu(); setFrame(prev => (prev + 1) % MONKEY_FRAMES.length); }}
-          className="absolute bottom-[22vh] z-[3] cursor-pointer drop-shadow-xl origin-bottom"
-          style={{ left: `${left}%`, width: '85vw', height: '85vw' }}
+          className="absolute bottom-[185.68px] z-[3] cursor-pointer drop-shadow-xl origin-bottom"
+          style={{ left: `${left}%`, width: '331.50px', height: '331.50px' }}
         >
           <img
             src={MONKEY_FRAMES[frame]}
@@ -872,8 +955,8 @@
 
       return (
         <div
-          className="absolute bottom-[0vh] z-[2] origin-bottom pointer-events-none drop-shadow-2xl"
-          style={{ width: '181vw', height: '205vw', left: `${left}%`, transform: `scaleX(${flip ? -1 : 1}) scale(${scale})` }}>
+          className="absolute bottom-[0.00px] z-[2] origin-bottom pointer-events-none drop-shadow-2xl"
+          style={{ width: '705.90px', height: '799.50px', left: `${left}%`, transform: `scaleX(${flip ? -1 : 1}) scale(${scale})` }}>
           <div ref={shakeRef} className="w-full h-full origin-bottom">
             <img
               src="./CherryBlossom.png?v=2"
@@ -891,8 +974,8 @@
 
       return (
           <div
-            className="absolute bottom-[16vh] z-[4] origin-bottom drop-shadow-xl pointer-events-none"
-            style={{ left: `${left}%`, width: '60vw', height: '85vw' }}
+            className="absolute bottom-[135.04px] z-[4] origin-bottom drop-shadow-xl pointer-events-none"
+            style={{ left: `${left}%`, width: '234.00px', height: '331.50px' }}
           >
             <div className="relative w-full h-full">
               <img
@@ -947,8 +1030,8 @@
       return (
         <div
           onClick={handleTap}
-          className="absolute bottom-[13vh] z-[3] cursor-pointer"
-          style={{ left: `${left}%`, width: '30vw', height: '55vh' }}
+          className="absolute bottom-[109.72px] z-[3] cursor-pointer"
+          style={{ left: `${left}%`, width: '117.00px', height: '464.20px' }}
         >
           <svg viewBox="0 0 100 240" className="w-full h-full" overflow="visible">
             {/* Vertical pole */}
@@ -992,8 +1075,8 @@
       return (
         <div
           onClick={handleTap}
-          className="absolute bottom-[24vh] z-[3] cursor-pointer origin-bottom"
-          style={{ left: `${left}%`, width: '45vw', height: '45vw' }}
+          className="absolute bottom-[202.56px] z-[3] cursor-pointer origin-bottom"
+          style={{ left: `${left}%`, width: '175.50px', height: '175.50px' }}
         >
           <svg viewBox="0 0 100 100" className="w-full h-full" overflow="visible">
             {/* Shadow */}
@@ -1033,7 +1116,7 @@
     };
 
     const ZenRocks = ({ left }) => (
-      <div className="absolute bottom-[24vh] z-[12] origin-bottom pointer-events-none" style={{ left: `${left}%`, width: '92vw', height: '34vw' }}>
+      <div className="absolute bottom-[202.56px] z-[12] origin-bottom pointer-events-none" style={{ left: `${left}%`, width: '358.80px', height: '132.60px' }}>
         <div onClick={(e) => { e.stopPropagation(); window.playSuikinkutsu(); }} className="absolute cursor-pointer" style={{ pointerEvents: 'auto', left: '15%', top: '30%', width: '70%', height: '60%' }} />
         <svg viewBox="0 0 100 55" overflow="visible" className="watercolor-edge w-full h-full">
           {/* Soft shadow */}
@@ -1058,7 +1141,7 @@
           <div
             onClick={(e) => { e.stopPropagation(); window.playSuikinkutsu(); setIsLit(prev => !prev); }}
             className="absolute cursor-pointer z-[8]"
-            style={{ top: `${topPercent}%`, left: '50%', transform: 'translateX(-50%)', width: '10vw', height: '14vw' }}
+            style={{ top: `${topPercent}%`, left: '50%', transform: 'translateX(-50%)', width: '39.00px', height: '54.60px' }}
           >
             <svg viewBox="0 0 80 100" className="w-full h-full" overflow="visible">
               <line x1="40" y1="0" x2="40" y2="20" stroke="#5C5046" strokeWidth="1.5" />
@@ -1120,7 +1203,7 @@
               0% { transform: translateY(0); opacity: 0; }
               5% { opacity: 1; }
               90% { opacity: 1; }
-              100% { transform: translateY(105vh); opacity: 0; }
+              100% { transform: translateY(886.20px); opacity: 0; }
             }
           `}</style>
           {flies.map((f, i) => (
@@ -1258,7 +1341,7 @@
                 className="absolute rounded-bl-full rounded-tr-full"
                 style={{ width: p.size, height: p.size, left: `${p.left}vw`, top: `${p.top}vh`, backgroundColor: p.color }}
                 initial={{ opacity: 0.85, y: 0 }}
-                animate={{ y: '80vh', x: [0, p.xDrift, -p.xDrift * 0.5, p.xDrift * 0.3], rotate: [0, 180, 360], opacity: [0.85, 0.7, 0.4, 0] }}
+                animate={{ y: '675.20px', x: [0, p.xDrift, -p.xDrift * 0.5, p.xDrift * 0.3], rotate: [0, 180, 360], opacity: [0.85, 0.7, 0.4, 0] }}
                 transition={{ duration: p.dur, ease: 'linear', delay: p.delay }}
               />
             )))}
@@ -1313,8 +1396,8 @@
               className="absolute flex items-center gap-12 cursor-pointer"
               style={{ pointerEvents: 'auto' }}
               onClick={() => window.playSuikinkutsu()}
-              initial={{ x: '100vw', y: `${flock.top}vh`, scale: flock.scale }}
-              animate={{ x: '-40vw', y: [`${flock.top}vh`, `${flock.top - 8}vh`, `${flock.top + 4}vh`, `${flock.top - 4}vh`] }}
+              initial={{ x: '390.00px', y: `${flock.top}vh`, scale: flock.scale }}
+              animate={{ x: '-156.00px', y: [`${flock.top}vh`, `${flock.top - 8}vh`, `${flock.top + 4}vh`, `${flock.top - 4}vh`] }}
               transition={{ x: { duration: flock.speed, ease: 'linear' }, y: { duration: flock.speed, ease: 'easeInOut' } }}
             >
               {Array.from({ length: 3 }).map((_, i) => (
@@ -1442,7 +1525,7 @@
       const BgBambooStalks = () => bgBambooData.map((b, i) => (
         <div
           key={`bg-${i}`}
-          className="absolute bottom-[14vh] w-5 bg-[#8A8A8A] origin-bottom z-[0]"
+          className="absolute bottom-[118.16px] w-5 bg-[#8A8A8A] origin-bottom z-[0]"
           style={{
             left: `${b.left}%`, height: `${b.height}%`, opacity: b.opacity,
             animation: `bambooSway${i % 3} 14s ease-in-out ${b.delay}s infinite`
@@ -1457,7 +1540,7 @@
       const BambooStalks = () => bambooData.map((b, i) => (
         <div
           key={i}
-          className="absolute bottom-[13vh] w-6 origin-bottom z-[1]"
+          className="absolute bottom-[109.72px] w-6 origin-bottom z-[1]"
           style={{
             left: `${b.left}%`, height: `${b.height}%`, opacity: b.opacity,
             animation: `bambooSway${i % 3} ${10 / windSpeed}s ease-in-out ${b.delay}s infinite`,
@@ -1487,8 +1570,8 @@
               {/* Background shadow snow trees - clipped to chunk */}
               <div className="absolute inset-0" style={{ overflow: 'hidden' }}>
                 {snowLayout.bgTrees.map((x, i) => (
-                  <div key={`bg-snow-tree-${i}`} className="absolute bottom-[20vh] z-[0] pointer-events-none origin-bottom"
-                       style={{ left: `${x}%`, transform: `scaleX(${i % 2 === 0 ? 1 : -1}) scale(${0.65 + Math.random() * 0.2})`, width: '217vw', height: '266vw', opacity: 0.35, filter: 'grayscale(0.4) brightness(0.6)' }}>
+                  <div key={`bg-snow-tree-${i}`} className="absolute bottom-[168.80px] z-[0] pointer-events-none origin-bottom"
+                       style={{ left: `${x}%`, transform: `scaleX(${i % 2 === 0 ? 1 : -1}) scale(${0.65 + Math.random() * 0.2})`, width: '846.30px', height: '1037.40px', opacity: 0.35, filter: 'grayscale(0.4) brightness(0.6)' }}>
                     <img src="SnowTree.png" className="w-full h-full object-contain" draggable="false" />
                   </div>
                 ))}
@@ -1527,7 +1610,7 @@
                       left: `${x}%`,
                       top: '-3%',
                       width: '1.5px',
-                      height: '2vh',
+                      height: '16.88px',
                       background: 'rgba(200,210,225,0.5)',
                       animation: `rainfall ${dur}s linear ${delay}s infinite`,
                     }} />
@@ -1545,8 +1628,8 @@
               {/* Background pine trees - clipped */}
               <div className="absolute inset-0" style={{ overflow: 'hidden' }}>
                 {zenLayout.bgPines.map((x, i) => (
-                  <div key={`bg-pine-${i}`} className="absolute bottom-[16vh] z-[0] pointer-events-none origin-bottom"
-                       style={{ left: `${x}%`, transform: `scaleX(${i % 2 === 0 ? 1 : -1}) scale(${0.45 + Math.random() * 0.2})`, width: '200vw', height: '280vw', opacity: 0.25, filter: 'grayscale(0.3) brightness(0.7)' }}>
+                  <div key={`bg-pine-${i}`} className="absolute bottom-[135.04px] z-[0] pointer-events-none origin-bottom"
+                       style={{ left: `${x}%`, transform: `scaleX(${i % 2 === 0 ? 1 : -1}) scale(${0.45 + Math.random() * 0.2})`, width: '780.00px', height: '1092.00px', opacity: 0.25, filter: 'grayscale(0.3) brightness(0.7)' }}>
                     <img src="./PineTree.png" className="w-full h-full object-contain" draggable="false" />
                   </div>
                 ))}
@@ -1653,11 +1736,11 @@
 
           {/* Living mist — drifting, breathing background orbs */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none z-[1]">
-            <div className="absolute top-[8%] left-[5%] w-[40vw] h-[40vw] rounded-full"
+            <div className="absolute top-[8%] left-[5%] w-[156.00px] h-[156.00px] rounded-full"
               style={{ background: 'radial-gradient(circle, rgba(200,213,220,0.35) 0%, transparent 65%)', animation: 'mistDrift 25s ease-in-out infinite' }} />
-            <div className="absolute bottom-[5%] right-[0%] w-[35vw] h-[35vw] rounded-full"
+            <div className="absolute bottom-[5%] right-[0%] w-[136.50px] h-[136.50px] rounded-full"
               style={{ background: 'radial-gradient(circle, rgba(210,200,185,0.25) 0%, transparent 60%)', animation: 'mistDrift 30s ease-in-out infinite reverse' }} />
-            <div className="absolute top-[40%] left-[50%] w-[20vw] h-[20vw] rounded-full -translate-x-1/2"
+            <div className="absolute top-[40%] left-[50%] w-[78.00px] h-[78.00px] rounded-full -translate-x-1/2"
               style={{ background: 'radial-gradient(circle, rgba(220,215,205,0.2) 0%, transparent 70%)', animation: 'shimmer 8s ease-in-out infinite' }} />
           </div>
 
@@ -1829,7 +1912,7 @@
       const phaseDuration = phase === 'inhale' ? 4 : phase === 'hold' ? 0.1 : 8;
 
       return (
-        <div className="fixed top-[10vh] left-1/2 -translate-x-1/2 z-[95] flex flex-col items-center pointer-events-none">
+        <div className="fixed top-[84.40px] left-1/2 -translate-x-1/2 z-[95] flex flex-col items-center pointer-events-none">
           <motion.div
             animate={{ scale: blobScale }}
             transition={{ duration: phaseDuration, ease: [0.4, 0, 0.2, 1] }}
@@ -2188,97 +2271,16 @@
       });
 
       return (
-        <main className="relative w-full h-[100dvh] overflow-hidden bg-[#EEECE4] selection:bg-[#BA3B31]/20 font-serif text-[#1C1F20]">
+        <main className="relative w-full h-full overflow-hidden bg-[#EEECE4] selection:bg-[#BA3B31]/20 font-serif text-[#1C1F20]">
 
           {/* Mood buttons are now inside the footer below */}
 
           {/* intentionHint glow is handled inline on the buttons + breathing area */}
 
           {/* ===== BOTTOM NAV ===== */}
-          <footer className="absolute bottom-0 left-0 right-0 z-[70] pointer-events-none flex justify-center" style={{ opacity: headerOpacity, transition: 'opacity 5s ease' }}>
-            {/* ===== MOOD BUTTONS — arc above Meditation tab ===== */}
-            {(() => {
-              const moodKeys = Object.keys(MOOD_MAP);
-              const arcRadius = 62;
-              const angles = [-50, 0, 50];
-              // Total arc width for the "Set your intention" text sizing
-              const arcSpan = 2 * Math.sin(50 * Math.PI / 180) * arcRadius + 40; // ~135px
-              return (
-                <div className="absolute pointer-events-auto transition-all duration-700" style={{
-                  left: `calc(50% + ${medBtnOffset}px)`,
-                  bottom: '62px',
-                  transform: 'translateX(-50%)',
-                  zIndex: 72,
-                  width: 0,
-                  height: 0,
-                  opacity: showMoodButtons ? (intentionHint ? 1 : 0.85) : 0,
-                  pointerEvents: showMoodButtons ? 'auto' : 'none',
-                }}>
-                  {/* "Set your intention" text above arc */}
-                  {intentionHint && (
-                    <div className="absolute flex flex-col items-center pointer-events-none" style={{
-                      bottom: `${arcRadius + 60}px`,
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      width: `${arcSpan}px`,
-                      maxWidth: '180px',
-                    }}>
-                      <p className="text-[12px] font-sans tracking-[0.2em] text-white text-center"
-                        style={{ textShadow: '0 1px 8px rgba(0,0,0,0.4)' }}>
-                        Set your intention
-                      </p>
-                      <p className="text-[8px] tracking-[0.08em] mt-1 text-center leading-snug"
-                        style={{ color: 'rgba(255,255,255,0.6)' }}>
-                        Interact with the world and it will adapt to you
-                      </p>
-                    </div>
-                  )}
-                  {moodKeys.map((key, i) => {
-                    const mood = MOOD_MAP[key];
-                    const isActive = initialMood === key;
-                    const angleRad = (angles[i] - 90) * (Math.PI / 180);
-                    const x = Math.cos(angleRad) * arcRadius;
-                    const y = Math.sin(angleRad) * arcRadius - 10;
-                    return (
-                      <button
-                        key={key}
-                        onClick={() => handleMoodSelect(key)}
-                        className={`group absolute w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 cursor-pointer ${intentionHint ? 'intention-glow' : ''}`}
-                        style={{
-                          left: `${x}px`,
-                          top: `${y}px`,
-                          transform: 'translate(-50%, -50%)',
-                          background: intentionHint ? 'rgba(255,255,255,0.25)' : isActive ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.15)',
-                          backdropFilter: 'blur(15px)',
-                          WebkitBackdropFilter: 'blur(15px)',
-                          border: `1px solid ${intentionHint ? 'rgba(255,255,255,0.5)' : isActive ? 'rgba(255,255,255,0.45)' : 'rgba(180,190,175,0.35)'}`,
-                          boxShadow: isActive ? '0 0 12px rgba(255,255,255,0.15), 0 2px 16px rgba(0,0,0,0.06)' : '0 2px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.15)',
-                        }}
-                        title={mood.label}
-                      >
-                        <span className="flex-shrink-0 transition-all duration-500 scale-[0.55]" style={{ color: intentionHint ? 'rgba(255,255,255,1)' : isActive ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,0.7)' }}>
-                          {MOOD_BRUSHSTROKES[key]}
-                        </span>
-                        <span className="absolute bottom-full mb-2 px-2.5 py-1 rounded-full whitespace-nowrap font-cormorant text-[10px] pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-300"
-                          style={{
-                            background: 'rgba(255,255,255,0.2)',
-                            backdropFilter: 'blur(12px)',
-                            WebkitBackdropFilter: 'blur(12px)',
-                            border: '1px solid rgba(255,255,255,0.18)',
-                            color: 'rgba(255,255,255,0.75)',
-                            letterSpacing: '0.08em',
-                          }}
-                        >
-                          {mood.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })()}
+          <footer className="absolute bottom-0 left-0 right-0 z-[70] pointer-events-none flex flex-col items-stretch px-4 pb-4" style={{ opacity: headerOpacity, transition: 'opacity 5s ease' }}>
 
-            <nav ref={navRef} className="nav-pill relative mb-4 md:mb-6 pointer-events-auto flex items-center rounded-full p-1.5"
+            <nav ref={navRef} className="nav-pill relative pointer-events-auto flex items-center rounded-full p-1.5 w-full"
               style={{
                 background: 'rgba(255,255,255,0.25)',
                 backdropFilter: 'blur(15px)',
@@ -2301,33 +2303,15 @@
               />
 
               {[
-                { id: 'meditation', label: 'Meditation', icon: (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="6" r="3"/>
-                    <path d="M12 9c-4 0-6 3-6 6h2l1-2 1.5 4h3l1.5-4 1 2h2c0-3-2-6-6-6z"/>
-                    <path d="M8 21c0-2 1.5-3 4-3s4 1 4 3"/>
-                  </svg>
-                )},
-                { id: 'order', label: 'Order Now', icon: (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
-                    <line x1="3" y1="6" x2="21" y2="6"/>
-                    <path d="M16 10a4 4 0 01-8 0"/>
-                  </svg>
-                )},
-                { id: 'help', label: 'Help', icon: (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
-                    <line x1="12" y1="17" x2="12.01" y2="17"/>
-                  </svg>
-                )},
+                { id: 'explore',  label: 'Explore',  moodKey: 'explore' },
+                { id: 'energize', label: 'Energize', moodKey: 'focus'   },
+                { id: 'calm',     label: 'Calm',     moodKey: 'calm'    },
               ].map(tab => (
                 <button
                   key={tab.id}
                   data-tab={tab.id}
-                  onClick={() => { setActiveTab(tab.id); if (tab.id === 'meditation') setShowMoodButtons(true); }}
-                  className="relative z-10 flex items-center gap-1.5 px-4 md:px-5 py-3 rounded-full transition-colors duration-500 font-sans whitespace-nowrap"
+                  onClick={() => { setActiveTab(tab.id); handleMoodSelect(tab.moodKey); }}
+                  className="relative z-10 flex flex-1 items-center justify-center py-3 rounded-full transition-colors duration-500 font-sans whitespace-nowrap"
                   style={{
                     color: activeTab === tab.id ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.5)',
                     fontSize: '11px',
@@ -2336,8 +2320,7 @@
                     textTransform: 'uppercase',
                   }}
                 >
-                  <span style={{ opacity: activeTab === tab.id ? 0.95 : 0.55, transition: 'opacity 0.5s' }}>{tab.icon}</span>
-                  <span>{tab.label}</span>
+                  {tab.label}
                 </button>
               ))}
             </nav>
@@ -2383,19 +2366,19 @@
             <div className="absolute inset-0 pointer-events-none z-[0]" style={{ background: 'linear-gradient(to bottom, #C8D5DC 0%, #D4DADE 20%, #DDE2DF 40%, #E4E1D8 70%)' }} />
 
             {/* Sun/moon glow */}
-            <div className="absolute top-[15%] right-[25%] w-[8vw] h-[8vw] rounded-full bg-[#FFFFFF] opacity-80 pointer-events-none z-[1]" style={{ filter: 'blur(4px)' }} />
+            <div className="absolute top-[15%] right-[25%] w-[31.20px] h-[31.20px] rounded-full bg-[#FFFFFF] opacity-80 pointer-events-none z-[1]" style={{ filter: 'blur(4px)' }} />
 
             {/* Soft clouds */}
-            <div className="absolute top-[8%] left-[10%] w-[20vw] h-[6vh] rounded-full bg-white opacity-25 pointer-events-none z-[1]" style={{ filter: 'blur(20px)' }} />
-            <div className="absolute top-[12%] left-[55%] w-[15vw] h-[5vh] rounded-full bg-white opacity-20 pointer-events-none z-[1]" style={{ filter: 'blur(18px)' }} />
-            <div className="absolute top-[6%] right-[15%] w-[12vw] h-[4vh] rounded-full bg-white opacity-15 pointer-events-none z-[1]" style={{ filter: 'blur(22px)' }} />
+            <div className="absolute top-[8%] left-[10%] w-[78.00px] h-[50.64px] rounded-full bg-white opacity-25 pointer-events-none z-[1]" style={{ filter: 'blur(20px)' }} />
+            <div className="absolute top-[12%] left-[55%] w-[58.50px] h-[42.20px] rounded-full bg-white opacity-20 pointer-events-none z-[1]" style={{ filter: 'blur(18px)' }} />
+            <div className="absolute top-[6%] right-[15%] w-[46.80px] h-[33.76px] rounded-full bg-white opacity-15 pointer-events-none z-[1]" style={{ filter: 'blur(22px)' }} />
 
             {/* Very distant mountain layer (slowest) */}
             <div
               className="absolute inset-y-0 left-0 w-[200%] flex items-end pointer-events-none opacity-30 z-[0] will-change-transform"
               style={{ animation: 'mountainScroll1 600s linear infinite' }}
             >
-              <svg viewBox="0 0 1000 300" preserveAspectRatio="none" className="w-full h-[68vh] fill-[#C0CAD0]">
+              <svg viewBox="0 0 1000 300" preserveAspectRatio="none" className="w-full h-[573.92px] fill-[#C0CAD0]">
                 <path d="M0,300 L0,200 Q50,160 100,190 Q200,100 300,170 Q400,130 450,80 Q500,130 550,160 Q650,100 750,150 Q850,90 900,140 Q950,170 1000,200 L1000,300 Z" />
               </svg>
             </div>
@@ -2405,7 +2388,7 @@
               className="absolute inset-y-0 left-0 w-[200%] flex items-end pointer-events-none opacity-50 z-[1] will-change-transform"
               style={{ animation: 'mountainScroll1 400s linear infinite' }}
             >
-              <svg viewBox="0 0 1000 300" preserveAspectRatio="none" className="w-full h-[60vh] fill-[#B5C2C9]">
+              <svg viewBox="0 0 1000 300" preserveAspectRatio="none" className="w-full h-[506.40px] fill-[#B5C2C9]">
                 <path d="M0,300 L0,180 L80,220 L150,120 L270,190 L380,80 L500,180 L580,220 L650,120 L770,190 L880,80 L1000,180 L1000,300 Z" />
               </svg>
             </div>
@@ -2415,7 +2398,7 @@
               className="absolute inset-y-0 left-0 w-[200%] flex items-end pointer-events-none opacity-70 z-[1] will-change-transform"
               style={{ animation: 'mountainScroll2 280s linear infinite' }}
             >
-              <svg viewBox="0 0 1000 300" preserveAspectRatio="none" className="w-full h-[48vh] fill-[#8A9BA3]">
+              <svg viewBox="0 0 1000 300" preserveAspectRatio="none" className="w-full h-[405.12px] fill-[#8A9BA3]">
                 <path d="M0,300 L0,220 L60,180 L120,240 L280,100 L400,160 L500,220 L560,180 L620,240 L780,100 L900,160 L1000,220 L1000,300 Z" />
               </svg>
             </div>
@@ -2425,7 +2408,7 @@
               className="absolute inset-y-0 left-0 w-[200%] flex items-end pointer-events-none opacity-90 z-[2] will-change-transform"
               style={{ animation: 'mountainScroll3 180s linear infinite' }}
             >
-              <svg viewBox="0 0 1000 300" preserveAspectRatio="none" className="w-full h-[38vh] fill-[#5B717B]">
+              <svg viewBox="0 0 1000 300" preserveAspectRatio="none" className="w-full h-[320.72px] fill-[#5B717B]">
                 <path d="M0,300 L0,230 Q20,210 30,220 Q50,150 70,200 Q100,220 120,180 Q150,150 180,210 Q250,160 300,230 Q350,210 370,180 Q400,160 430,220 L500,230 Q520,210 530,220 Q550,150 570,200 Q600,220 620,180 Q650,150 680,210 Q750,160 800,230 Q850,210 870,180 Q900,160 930,220 L1000,230 L1000,300 Z" />
               </svg>
             </div>
